@@ -64,6 +64,7 @@ var TeamcityReporter = function (baseReporterDecorator) {
       name: browser.name,
       log: [],
       lastSuite: null,
+      lastPackage: null,
       flowId: 'karmaTC' + hashString(browser.name + ((new Date()).getTime())) + browser.id
     }
   }
@@ -82,7 +83,7 @@ var TeamcityReporter = function (baseReporterDecorator) {
 
   this.specSuccess = function (browser, result) {
     var log = this.getLog(browser, result)
-    var testName = result.description
+    var testName = (this.browserResults[browser.id].lastPackage || '') + '.' + result.description
 
     log.push(formatMessage(this.TEST_START, testName))
     log.push(formatMessage(this.TEST_END, testName, result.time))
@@ -90,7 +91,7 @@ var TeamcityReporter = function (baseReporterDecorator) {
 
   this.specFailure = function (browser, result) {
     var log = this.getLog(browser, result)
-    var testName = result.description
+    var testName = (this.browserResults[browser.id].lastPackage || '') + '.' + result.description
 
     log.push(formatMessage(this.TEST_START, testName))
     log.push(formatMessage(this.TEST_FAILED, testName, result.log.join('\n\n')))
@@ -99,7 +100,7 @@ var TeamcityReporter = function (baseReporterDecorator) {
 
   this.specSkipped = function (browser, result) {
     var log = this.getLog(browser, result)
-    var testName = result.description
+    var testName = (this.browserResults[browser.id].lastPackage || '') + '.' + result.description
 
     log.push(formatMessage(this.TEST_IGNORED, testName))
   }
@@ -119,20 +120,16 @@ var TeamcityReporter = function (baseReporterDecorator) {
 
   this.getLog = function (browser, result) {
     var browserResult = this.browserResults[browser.id]
-    var suiteName = browser.name
-    var moduleName = result.suite.join(' ')
-
-    if (moduleName) {
-      suiteName = moduleName.concat('.', suiteName)
-    }
-
+    var suiteName = result.suite.join(' ')
     var log = browserResult.log
+
     if (browserResult.lastSuite !== suiteName) {
       if (browserResult.lastSuite) {
         log.push(formatMessage(this.SUITE_END, browserResult.lastSuite))
       }
       this.flushLogs(browserResult)
       browserResult.lastSuite = suiteName
+      browserResult.lastPackage = result.suite[0]
       log.push(formatMessage(this.SUITE_START, suiteName))
     }
     return log
